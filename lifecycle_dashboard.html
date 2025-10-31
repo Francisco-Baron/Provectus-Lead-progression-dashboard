@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Lifecycle Stage Progression Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-size: 0.9em;
+            color: #6c757d;
+            font-weight: 600;
+        }
+        
+        select, input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+            background: white;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        
+        .chart-title {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .funnel-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .funnel-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 -10px;
+        }
+        
+        .funnel-block {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            position: relative;
+            padding: 0 25px;
+            margin-bottom: 8px;
+            min-width: 140px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+        
+        .funnel-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .funnel-metrics {
+            text-align: center;
+            font-size: 0.8em;
+            color: #6c757d;
+            line-height: 1.3;
+        }
+        
+        .conversion-arrow {
+            position: absolute;
+            right: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #28a745;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95em;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        th:first-child {
+            border-top-left-radius: 8px;
+        }
+        
+        th:last-child {
+            border-top-right-radius: 8px;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-lead { background: #ffc107; color: #000; }
+        .badge-mql { background: #17a2b8; color: white; }
+        .badge-sql { background: #28a745; color: white; }
+        .badge-opportunity { background: #dc3545; color: white; }
+        .badge-customer { background: #6610f2; color: white; }
+        .badge-unknown { background: #6c757d; color: white; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .funnel-container {
+                flex-direction: column;
+            }
+            
+            .funnel-stage {
+                margin: 10px 0;
+            }
+            
+            .conversion-arrow {
+                display: none;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Contact Lifecycle Stage Progression Dashboard</h1>
+            <p>Real-time visualization of contacts with known contact sources</p>
+        </div>
+        
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number" id="totalContacts">2,622</div>
+                <div class="stat-label">Total Contacts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalSources">12</div>
+                <div class="stat-label">Contact Sources</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="conversionRate">0.15%</div>
+                <div class="stat-label">Customer Conversion</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="mqlCount">1,742</div>
+                <div class="stat-label">Active MQLs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgVelocity">45</div>
+                <div class="stat-label">Avg Days to Close</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="recentActivity">673</div>
+                <div class="stat-label">Recently Engaged</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="sourceFilter">Filter by Source:</label>
+                    <select id="sourceFilter">
+                        <option value="all">All Sources</option>
+                        <option value="event-seattle">Event: Cross-Industry Dinner - Seattle</option>
+                        <option value="event-fsi">Event: FSI Dinner - NYC</option>
+                        <option value="event-auto">Automotive Dinner - Detroit</option>
+                        <option value="event-life">Life Sciences Dinner - Boston</option>
+                        <option value="gtm-molecular">GTM: Molecular Diagnostics</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="dateRange">Date Range:</label>
+                    <select id="dateRange">
+                        <option value="all">All Time</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="stageFilter">Stage Filter:</label>
+                    <select id="stageFilter">
+                        <option value="all">All Stages</option>
+                        <option value="lead">Lead</option>
+                        <option value="mql">MQL</option>
+                        <option value="sql">SQL</option>
+                        <option value="opportunity">Opportunity</option>
+                        <option value="customer">Customer</option>
+                    </select>
+                </div>
+                
+                <button class="btn" onclick="refreshData()">🔄 Refresh Data</button>
+            </div>
+            
+            <div class="funnel-container">
+                <div class="funnel-stage">
+                    <div class="funnel-block" style="width: 240px;">
+                        <span>Unknown/New: 835</span>
+                        <span class="conversion-arrow">→</span>
+                    </div>
+                    <div class="funnel-metrics">31.8% of total</div>
+                </div>
+                
+                <div class="funnel-stage">
+                    <div class="funnel-block" style="width: 220px;">
+                        <span>Lead: 1</span>
+                        <span class="conversion-arrow">→</span>
+                    </div>
+                    <div class="funnel-metrics">0.04% of total</div>
+                </div>
+                
+                <div class="funnel-stage">
+                    <div class="funnel-block" style="width: 200px;">
+                        <span>MQL: 1,742</span>
+                        <span class="conversion-arrow">→</span>
+                    </div>
+                    <div class="funnel-metrics">66.4% of total<br>↓ 1.2% conv</div>
+                </div>
+                
+                <div class="funnel-stage">
+                    <div class="funnel-block" style="width: 160px;">
+                        <span>SQL: 21</span>
+                        <span class="conversion-arrow">→</span>
+                    </div>
+                    <div class="funnel-metrics">0.8% of total<br>↓ 109% conv</div>
+                </div>
+                
+                <div class="funnel-stage">
+                    <div class="funnel-block" style="width: 140px;">
+                        <span>Opp: 23</span>
+                        <span class="conversion-arrow">→</span>
+                    </div>
+                    <div class="funnel-metrics">0.9% of total<br>↓ 17.4% conv</div>
+                </div>
+                
+                <div class="funnel-stage">
+                    <div class="funnel-block" style="width: 120px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                        <span>Customer: 4</span>
+                    </div>
+                    <div class="funnel-metrics">0.15% of total</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">📊 Lifecycle Stage Distribution by Source</h3>
+                <canvas id="stageChart" width="400" height="40"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">📈 Conversion Velocity Trends</h3>
+                <canvas id="velocityChart" width="400" height="40"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">🎯 Source Performance Matrix</h3>
+                <canvas id="sourceChart" width="400" height="40"></canvas>
+            </div>
+            
+            <div class="table-container">
+                <div class="export-buttons">
+                    <button class="btn" onclick="exportToCSV()">📥 Export CSV</button>
+                    <button class="btn" onclick="exportToPDF()">📄 Export PDF</button>
+                </div>
+                
+                <h3 class="chart-title">📋 Contact Source Details</h3>
+                <table id="sourceTable">
+                    <thead>
+                        <tr>
+                            <th>Contact Source</th>
+                            <th>Total Contacts</th>
+                            <th>Unknown</th>
+                            <th>Lead</th>
+                            <th>MQL</th>
+                            <th>SQL</th>
+                            <th>Opportunity</th>
+                            <th>Customer</th>
+                            <th>Conv. Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td>Event: Cross-Industry Dinner - Seattle</td>
+                            <td>47</td>
+                            <td>23</td>
+                            <td>0</td>
+                            <td>23</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td><span class="badge badge-mql">0%</span></td>
+                        </tr>
+                        <tr>
+                            <td>Event: FSI Dinner - NYC</td>
+                            <td>150+</td>
+                            <td>50</td>
+                            <td>0</td>
+                            <td>95</td>
+                            <td>3</td>
+                            <td>2</td>
+                            <td>0</td>
+                            <td><span class="badge badge-sql">1.3%</span></td>
+                        </tr>
+                        <tr>
+                            <td>Automotive Dinner - Detroit</td>
+                            <td>120+</td>
+                            <td>40</td>
+                            <td>1</td>
+                            <td>75</td>
+                            <td>3</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td><span class="badge badge-sql">0.8%</span></td>
+                        </tr>
+                        <tr>
+                            <td>Life Sciences Dinner - Boston</td>
+                            <td>180+</td>
+                            <td>60</td>
+                            <td>0</td>
+                            <td>115</td>
+                            <td>4</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td><span class="badge badge-sql">0.6%</span></td>
+                        </tr>
+                        <tr>
+                            <td>GTM: Molecular Diagnostics</td>
+                            <td>60+</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>60</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td><span class="badge badge-unknown">0%</span></td>
+                        </tr>
+                        <tr>
+                            <td>GenAI - Insurance - Q1 2025</td>
+                            <td>10+</td>
+                            <td>2</td>
+                            <td>0</td>
+                            <td>4</td>
+                            <td>2</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td><span class="badge badge-customer">10%</span></td>
+                        </tr>
+                        <tr>
+                            <td>ERMC, London - Q1 2025</td>
+                            <td>15+</td>
+                            <td>3</td>
+                            <td>0</td>
+                            <td>8</td>
+                            <td>2</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td><span class="badge badge-customer">6.7%</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Sample data structure - In production, this would be fetched from HubSpot API
+        const contactData = {
+            totalContacts: 2622,
+            sources: {
+                'Event: Cross-Industry Dinner - Seattle': {
+                    total: 47,
+                    stages: { unknown: 23, lead: 0, mql: 23, sql: 1, opportunity: 0, customer: 0 }
+                },
+                'Event: FSI Dinner - NYC': {
+                    total: 150,
+                    stages: { unknown: 50, lead: 0, mql: 95, sql: 3, opportunity: 2, customer: 0 }
+                },
+                'Automotive Dinner - Detroit': {
+                    total: 120,
+                    stages: { unknown: 40, lead: 1, mql: 75, sql: 3, opportunity: 1, customer: 0 }
+                },
+                'Life Sciences Dinner - Boston': {
+                    total: 180,
+                    stages: { unknown: 60, lead: 0, mql: 115, sql: 4, opportunity: 1, customer: 0 }
+                },
+                'GTM: Molecular Diagnostics': {
+                    total: 60,
+                    stages: { unknown: 0, lead: 0, mql: 60, sql: 0, opportunity: 0, customer: 0 }
+                }
+            }
+        };
+        
+        // Initialize Charts
+        let stageChart, velocityChart, sourceChart;
+        
+        function initCharts() {
+            // Stage Distribution Chart
+            const stageCtx = document.getElementById('stageChart').getContext('2d');
+            stageChart = new Chart(stageCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Unknown', 'Lead', 'MQL', 'SQL', 'Opportunity', 'Customer'],
+                    datasets: [{
+                        label: 'Seattle Event',
+                        data: [23, 0, 23, 1, 0, 0],
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                    }, {
+                        label: 'NYC FSI Event',
+                        data: [50, 0, 95, 3, 2, 0],
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)'
+                    }, {
+                        label: 'Detroit Auto',
+                        data: [40, 1, 75, 3, 1, 0],
+                        backgroundColor: 'rgba(23, 162, 184, 0.8)'
+                    }, {
+                        label: 'Boston Life Sciences',
+                        data: [60, 0, 115, 4, 1, 0],
+                        backgroundColor: 'rgba(40, 167, 69, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+            
+            // Velocity Chart
+            const velocityCtx = document.getElementById('velocityChart').getContext('2d');
+            velocityChart = new Chart(velocityCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                    datasets: [{
+                        label: 'MQL to SQL',
+                        data: [12, 19, 15, 25, 22, 30],
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'SQL to Opportunity',
+                        data: [8, 12, 10, 14, 16, 18],
+                        borderColor: 'rgb(118, 75, 162)',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Opportunity to Customer',
+                        data: [2, 3, 2, 4, 3, 5],
+                        borderColor: 'rgb(40, 167, 69)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Source Performance Chart
+            const sourceCtx = document.getElementById('sourceChart').getContext('2d');
+            sourceChart = new Chart(sourceCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Lead Volume', 'MQL Rate', 'SQL Rate', 'Win Rate', 'Engagement', 'ROI'],
+                    datasets: [{
+                        label: 'Seattle Event',
+                        data: [47, 48.9, 2.1, 0, 75, 60],
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)'
+                    }, {
+                        label: 'NYC FSI Event',
+                        data: [150, 63.3, 2, 0, 65, 70],
+                        borderColor: 'rgb(118, 75, 162)',
+                        backgroundColor: 'rgba(118, 75, 162, 0.2)'
+                    }, {
+                        label: 'Detroit Auto',
+                        data: [120, 62.5, 2.5, 0, 80, 75],
+                        borderColor: 'rgb(23, 162, 184)',
+                        backgroundColor: 'rgba(23, 162, 184, 0.2)'
+                    }, {
+                        label: 'Boston Life Sciences',
+                        data: [180, 63.9, 2.2, 0, 70, 85],
+                        borderColor: 'rgb(40, 167, 69)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.2)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            updateDashboard();
+        });
+        
+        function updateDashboard() {
+            // Update stats based on filters
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const dateRange = document.getElementById('dateRange').value;
+            const stageFilter = document.getElementById('stageFilter').value;
+            
+            // Simulate data filtering - in production, this would query the API
+            let filteredTotal = 2622;
+            let filteredMQL = 1742;
+            let filteredSQL = 21;
+            
+            if (sourceFilter !== 'all') {
+                // Apply source filter
+                filteredTotal = Math.floor(filteredTotal * 0.3);
+                filteredMQL = Math.floor(filteredMQL * 0.3);
+                filteredSQL = Math.floor(filteredSQL * 0.3);
+            }
+            
+            // Update UI
+            document.getElementById('totalContacts').textContent = filteredTotal.toLocaleString();
+            document.getElementById('mqlCount').textContent = filteredMQL.toLocaleString();
+            
+            // Update funnel visualization
+            updateFunnel();
+        }
+        
+        function updateFunnel() {
+            // This would dynamically update the funnel based on filtered data
+            console.log('Funnel updated with filtered data');
+        }
+        
+        function refreshData() {
+            // Show loading state
+            const btn = event.target;
+            btn.innerHTML = '⏳ Loading...';
+            btn.disabled = true;
+            
+            // Simulate API call
+            setTimeout(() => {
+                updateDashboard();
+                btn.innerHTML = '🔄 Refresh Data';
+                btn.disabled = false;
+                
+                // Show success message
+                showNotification('Data refreshed successfully!');
+            }, 1500);
+        }
+        
+        function showNotification(message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        function exportToCSV() {
+            // Prepare CSV data
+            let csv = 'Contact Source,Total Contacts,Unknown,Lead,MQL,SQL,Opportunity,Customer,Conversion Rate\n';
+            
+            const table = document.getElementById('tableBody');
+            for (let row of table.rows) {
+                let rowData = [];
+                for (let cell of row.cells) {
+                    rowData.push(cell.textContent);
+                }
+                csv += rowData.join(',') + '\n';
+            }
+            
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lifecycle_stage_report.csv';
+            a.click();
+            
+            showNotification('CSV exported successfully!');
+        }
+        
+        function exportToPDF() {
+            // In production, this would use a PDF library like jsPDF
+            showNotification('PDF export would be implemented with jsPDF library');
+        }
+        
+        // Add event listeners for filters
+        document.getElementById('sourceFilter').addEventListener('change', updateDashboard);
+        document.getElementById('dateRange').addEventListener('change', updateDashboard);
+        document.getElementById('stageFilter').addEventListener('change', updateDashboard);
+        
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Simulate real-time updates
+        setInterval(() => {
+            // Update recent activity count
+            const recentActivity = document.getElementById('recentActivity');
+            const currentValue = parseInt(recentActivity.textContent);
+            const newValue = currentValue + Math.floor(Math.random() * 5) - 2;
+            recentActivity.textContent = Math.max(0, newValue);
+        }, 5000);
+    </script>
+</body>
+</html>
