@@ -148,6 +148,24 @@
             margin-bottom: 15px;
             box-shadow: 0 3px 10px rgba(0,0,0,0.08);
         }
+
+        /* Fix: give chart containers a reasonable max-height and ensure canvases don't force page growth.
+           Chart.js with maintainAspectRatio:false can expand to the height of its container — if container
+           has no height the canvas can grow unexpectedly. Here we cap the height to stop infinite vertical stretch. */
+        .chart-container {
+            /* set an explicit height for charts while allowing them to shrink on small screens */
+            height: 320px;
+            max-height: 520px;
+            min-height: 180px;
+            overflow: hidden;
+        }
+
+        /* Make canvases fill the container but not exceed it */
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
         
         .chart-title {
             font-size: 1.1em;
@@ -319,6 +337,12 @@
             .stats-container {
                 grid-template-columns: 1fr;
             }
+
+            /* Allow charts to shrink more on small screens */
+            .chart-container {
+                height: auto;
+                min-height: 160px;
+            }
         }
     </style>
 </head>
@@ -392,7 +416,7 @@
                     </select>
                 </div>
                 
-                <button class="btn" onclick="refreshData()">🔄 Refresh Data</button>
+                <button class="btn" onclick="refreshData(event)">🔄 Refresh Data</button>
             </div>
             
             <div class="funnel-container">
@@ -767,9 +791,11 @@
             console.log('Funnel updated with filtered data');
         }
         
-        function refreshData() {
+        // Accept event param to avoid using implicit global `event` which can be undefined in some browsers
+        function refreshData(e) {
             // Show loading state
-            const btn = event.target;
+            const btn = e && e.currentTarget ? e.currentTarget : (e && e.target) ? e.target : document.querySelector('.btn');
+            if (!btn) return;
             btn.innerHTML = '⏳ Loading...';
             btn.disabled = true;
             
